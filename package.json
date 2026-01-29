@@ -1,0 +1,35 @@
+{
+  "name": "obsidian-tunnel",
+  "version": "1.0.0",
+  "description": "Web interface for interacting with Obsidian vault via Local REST API",
+  "type": "module",
+  "main": "dist/server/index.js",
+  "bin": {
+    "obsidian-tunnel": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build:client": "tsc -p tsconfig.client.json && npm run copy:client",
+    "copy:client": "mkdir -p dist/public && cp src/client/index.html dist/public/ && cp dist/client/client/app.js dist/public/",
+    "dev": "tsx src/server/index.ts",
+    "dev:client": "tsc -p tsconfig.client.json --watch",
+    "start": "node dist/server/index.js",
+    "cli": "tsx src/cli.ts"
+  },
+  "keywords": ["obsidian", "api", "vault", "notes", "web"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0",
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

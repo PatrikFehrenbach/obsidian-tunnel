@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obsidian Tunnel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/continuelist.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <style>
+        * {
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+        }
+        
+        .file-item {
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .file-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .file-item.selected {
+            background-color: #e0e7ff;
+            border-left: 3px solid #4f46e5;
+        }
+        
+        .file-actions {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .file-item:hover .file-actions {
+            opacity: 1;
+        }
+        
+        .action-btn {
+            padding: 2px 6px;
+            font-size: 11px;
+            border-radius: 3px;
+            background: white;
+            border: 1px solid #d1d5db;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        
+        .action-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+        
+        .action-btn.delete:hover {
+            background: #fee;
+            border-color: #ef4444;
+            color: #dc2626;
+        }
+        
+        .action-btn.rename:hover {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            color: #2563eb;
+        }
+        
+        .markdown-content {
+            white-space: pre-wrap;
+            font-family: ui-monospace, 'Monaco', 'Menlo', monospace;
+            line-height: 1.6;
+            padding: 1rem;
+        }
+        
+        .markdown-preview {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.7;
+            padding: 2rem;
+            max-width: 100%;
+        }
+        
+        .markdown-preview h1 { font-size: 2em; font-weight: bold; margin: 1em 0 0.5em; }
+        .markdown-preview h2 { font-size: 1.5em; font-weight: bold; margin: 1em 0 0.5em; }
+        .markdown-preview h3 { font-size: 1.25em; font-weight: bold; margin: 1em 0 0.5em; }
+        .markdown-preview p { margin: 0.5em 0; }
+        .markdown-preview ul, .markdown-preview ol { margin: 0.5em 0; padding-left: 2em; }
+        .markdown-preview code { background: #f3f4f6; padding: 0.2em 0.4em; border-radius: 3px; font-size: 0.9em; }
+        .markdown-preview pre { background: #1f2937; color: #f9fafb; padding: 1em; border-radius: 6px; overflow-x: auto; }
+        .markdown-preview pre code { background: transparent; padding: 0; }
+        .markdown-preview blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; margin: 1em 0; color: #6b7280; }
+        .markdown-preview a { color: #4f46e5; text-decoration: underline; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .CodeMirror {
+            height: auto;
+            min-height: 600px;
+            font-size: 15px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            line-height: 1.7;
+            border: none;
+        }
+        
+        .CodeMirror-scroll {
+            min-height: 600px;
+            padding: 1rem 0;
+        }
+        
+        .CodeMirror-focused {
+            outline: none;
+        }
+        
+        .modal-enter {
+            animation: modalFadeIn 0.2s ease-out;
+        }
+        
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .saving-indicator {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            background: #10b981;
+            color: white;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-white min-h-screen">
+    <div class="container mx-auto px-6 py-8 max-w-6xl">
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-semibold text-black mb-1">Obsidian Tunnel</h1>
+                    <p class="text-sm text-gray-500">Manage your Obsidian vault from the web</p>
+                </div>
+                <div id="connection-status" class="flex items-center text-xs text-gray-600">
+                    <span id="status-indicator" class="inline-block w-2 h-2 rounded-full bg-gray-300 mr-2"></span>
+                    <span id="status-text">Checking...</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="panel-files">
+            <div class="flex gap-4 h-screen" style="height: calc(100vh - 200px);">
+                <div class="w-80 flex-shrink-0 flex flex-col border-r border-gray-200">
+                    <div class="p-4 border-b border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h2 class="text-sm font-semibold text-gray-900">Files</h2>
+                            <button onclick="loadFiles()" class="text-xs text-gray-600 hover:text-black px-2 py-1 border border-gray-300 hover:border-black rounded">
+                                Refresh
+                            </button>
+                        </div>
+                        <button onclick="createNewNote()" class="w-full px-3 py-2 text-sm font-medium bg-black text-white hover:bg-gray-800 rounded transition-colors">
+                            New Note
+                        </button>
+                    </div>
+                    <div id="files-list" class="flex-1 overflow-auto">
+                        <div class="text-sm text-gray-500 py-12 text-center">Loading files...</div>
+                    </div>
+                </div>
+                
+                <div class="flex-1 flex flex-col overflow-hidden">
+                    <div id="editor-header" class="hidden p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                        <div>
+                            <h3 id="editor-file-name" class="text-base font-semibold text-black"></h3>
+                            <p id="editor-file-path" class="text-xs text-gray-500 mt-1"></p>
+                        </div>
+                        <button onclick="closeEditor()" class="text-gray-500 hover:text-black px-3 py-1 text-sm border border-gray-300 hover:border-black rounded">
+                            Close
+                        </button>
+                    </div>
+                    <div id="editor-container" class="flex-1 overflow-hidden"></div>
+                    <div id="editor-empty" class="flex-1 flex items-center justify-center text-gray-400">
+                        <div class="text-center">
+                            <p class="text-lg mb-2">No file selected</p>
+                            <p class="text-sm">Click a file to edit</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="new-note-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+        <div class="bg-white w-full max-w-md rounded-lg shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-black">Create New Note</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Note Name</label>
+                    <input type="text" id="new-note-name" placeholder="My Note" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Folder (optional)</label>
+                    <select id="new-note-folder" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent">
+                        <option value="">Root folder</option>
+                    </select>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
+                <button onclick="closeNewNoteModal()" class="px-4 py-2 text-sm border border-gray-300 hover:border-black text-gray-700 hover:text-black rounded">
+                    Cancel
+                </button>
+                <button onclick="submitNewNote()" class="px-4 py-2 text-sm bg-black text-white hover:bg-gray-800 rounded">
+                    Create
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="rename-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+        <div class="bg-white w-full max-w-md rounded-lg shadow-2xl">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-black">Rename File</h3>
+            </div>
+            <div class="p-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">New Name</label>
+                    <input type="text" id="rename-input" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
+                <button onclick="closeRenameModal()" class="px-4 py-2 text-sm border border-gray-300 hover:border-black text-gray-700 hover:text-black rounded">
+                    Cancel
+                </button>
+                <button onclick="submitRename()" class="px-4 py-2 text-sm bg-black text-white hover:bg-gray-800 rounded">
+                    Rename
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
